@@ -1775,153 +1775,51 @@ EOF
 #5
 # Reality Reverse Tunnel
 reality_reverse() {
-	create_reverse_reality_server_multiport_iran() {
-		echo -e "${cyan}============================${rest}"
-		echo -en "${green}Enter the starting local port [${yellow}greater than 23${green}]: ${rest}"
-		read -r start_port
-		echo -en "${green}Enter the ending local port [${yellow}less than 65535${green}]: ${rest}"
-		read -r end_port
-		echo -en "${green}Enter the remote address: ${rest}"
-		read -r remote_address
-		echo -en "${green}Enter SNI (${yellow}Example: google.com${green}): ${rest}"
-		read -r sni
-		echo -en "${green}Enter a password (${yellow}same password on both servers${green}): ${rest}"
-		read -r passwd
 
-		install_waterwall
+reality_reverse() {
+    create_reverse_reality_failover() {
+        echo -e "${cyan}============================${rest}"
+        echo -en "${green}Enter the address of the primary server: ${rest}"
+        read -r primary_address
+        echo -en "${green}Enter the address of the backup server: ${rest}"
+        read -r backup_address
+        echo -en "${green}Enter SNI (e.g., google.com): ${rest}"
+        read -r sni
+        echo -en "${green}Enter a password (same password on both servers): ${rest}"
+        read -r passwd
+        echo -en "${green}Enter Minimum-unused [Default: 16]: ${rest}"
+        read -r min_un
+        min_un=${min_un:-16}
 
-		json=$(
-			cat <<EOF
+        install_waterwall
+
+        json=$(
+            cat <<EOF
 {
-    "name": "reverse_reality_server_multiport",
+    "name": "reverse_reality_failover",
     "nodes": [
         {
-            "name": "users_inbound",
-            "type": "TcpListener",
+            "name": "health_check",
+            "type": "HealthCheck",
             "settings": {
-                "address": "0.0.0.0",
-                "port": [$start_port,$end_port],
-                "nodelay": true
-            },
-            "next": "header"
-        },
-        {
-            "name": "header",
-            "type": "HeaderClient",
-            "settings": {
-                "data": "src_context->port"
-            },
-            "next": "bridge2"
-        },
-        {
-            "name": "bridge2",
-            "type": "Bridge",
-            "settings": {
-                "pair": "bridge1"
-            }
-        },
-        {
-            "name": "bridge1",
-            "type": "Bridge",
-            "settings": {
-                "pair": "bridge2"
-            }
-        },
-        {
-            "name": "reverse_server",
-            "type": "ReverseServer",
-            "settings": {},
-            "next": "bridge1"
-        },
-        {
-            "name": "reality_server",
-            "type": "RealityServer",
-            "settings": {
-                "destination": "reality_dest",
-                "password": "$passwd"
-            },
-            "next": "reverse_server"
-        },
-        {
-            "name": "kharej_inbound",
-            "type": "TcpListener",
-            "settings": {
-                "address": "0.0.0.0",
-                "port": 443,
-                "nodelay": true,
-                "whitelist": [
-                    "$remote_address/32"
-                ]
-            },
-            "next": "reality_server"
-        },
-        {
-            "name": "reality_dest",
-            "type": "TcpConnector",
-            "settings": {
-                "nodelay": true,
-                "address": "$sni",
-                "port": 443
-            }
-        }
-    ]
-}
-EOF
-		)
-
-		echo "$json" >/root/Waterwall/config.json
-	}
-
-	create_reverse_reality_client_multiport_kharej() {
-		echo -e "${cyan}============================${rest}"
-		echo -e "${yellow}This method uses port 443. Make sure it is not already in use and is open. ${rest}"
-		echo -en "${green}Enter the remote address: ${rest}"
-		read -r remote_address
-		echo -en "${green}Enter SNI (${yellow}Example: google.com${green}): ${rest}"
-		read -r sni
-		echo -en "${green}Enter a password (${yellow}same password on both servers${green}): ${rest}"
-		read -r passwd
-		echo -en "${green}Enter Minimum-unused [${yellow}Default: 16${green}]: ${rest}"
-		read -r min_un
-		min_un=${min_un:-16}
-
-		install_waterwall
-
-		json=$(
-			cat <<EOF
-{
-    "name": "reverse_reality_client_multiport",
-    "nodes": [
-        {
-            "name": "outbound_to_core",
-            "type": "TcpConnector",
-            "settings": {
-                "nodelay": true,
-                "address": "127.0.0.1",
-                "port": "dest_context->port"
-            }
-        },
-        {
-            "name": "header",
-            "type": "HeaderServer",
-            "settings": {
-                "override": "dest_context->port"
-            },
-            "next": "outbound_to_core"
-        },
-        {
-            "name": "bridge1",
-            "type": "Bridge",
-            "settings": {
-                "pair": "bridge2"
-            },
-            "next": "header"
-        },
-        {
-            "name": "bridge2",
-            "type": "Bridge",
-            "settings": {
-                "pair": "bridge1"
+                "targets": [
+                    {
+                        "name": "primary_server",
+                        "address": "$primary_address",
+                        "port": 443,
+                        "interval": 5,
+                        "timeout": 2
+                    },
+                    {
+                        "name": "backup_server",
+                        "address": "$backup_address",
+                        "port": 443,
+                        "interval": 5,
+                        "timeout": 2
+                    }
+                ],
+                "failover": true,
+                "fallback": "backup_server"
             },
             "next": "reverse_client"
         },
@@ -1940,51 +1838,49 @@ EOF
                 "sni": "$sni",
                 "password": "$passwd"
             },
-            "next": "outbound_to_iran"
+            "next": "tcp_connector"
         },
         {
-            "name": "outbound_to_iran",
+            "name": "tcp_connector",
             "type": "TcpConnector",
             "settings": {
                 "nodelay": true,
-                "address": "$remote_address",
+                "address": "node->address",
                 "port": 443
             }
         }
     ]
 }
 EOF
-		)
+        )
 
-		echo "$json" >/root/Waterwall/config.json
-	}
+        echo "$json" >/root/Waterwall/config.json
 
-	echo -e "${yellow}      ***************************************${rest}"
-	echo -e "${yellow}      |${purple} [1] ${green}Reverse Reality Multiport Iran${yellow}  |${rest}"
-	echo -e "${yellow}      |${purple} [2] ${green}Reverse Reality Multiport kharej${yellow}|${rest}"
-	echo -e "${yellow}      |${blue}*************************************${yellow}|${rest}"
-	echo -e "${yellow}      |${purple}  [0] ${green}Back to ${purple}Main Menu${yellow}              |${rest}"
-	echo -e "${yellow}      ***************************************${rest}"
-	echo -en "${cyan}      Enter your choice (1-2): ${rest}"
-	read -r choice
+        echo -e "${yellow}Failover configuration has been successfully set.${rest}"
+    }
 
-	case $choice in
-	1)
-		create_reverse_reality_server_multiport_iran
-		waterwall_service
-		;;
-	2)
-		create_reverse_reality_client_multiport_kharej
-		waterwall_service
-		;;
-	0)
-		main
-		;;
-	*)
-		echo -e "${red}Invalid choice!${rest}"
-		;;
-	esac
+    echo -e "${yellow}      ***************************************${rest}"
+    echo -e "${yellow}      |${purple} [1] ${green}Configure Reality Failover${yellow}      |${rest}"
+    echo -e "${yellow}      |${blue}*************************************${yellow}|${rest}"
+    echo -e "${yellow}      | ${purple} [0] ${green}Back to ${purple}Main Menu${yellow}              |${rest}"
+    echo -e "${yellow}      ***************************************${rest}"
+    echo -en "${cyan}      Enter your choice (1): ${rest}"
+    read -r choice
+
+    case $choice in
+    1)
+        create_reverse_reality_failover
+        waterwall_service
+        ;;
+    0)
+        main
+        ;;
+    *)
+        echo -e "${red}Invalid choice!${rest}"
+        ;;
+    esac
 }
+
 #===================================
 
 #6
