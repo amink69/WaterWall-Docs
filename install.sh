@@ -1774,7 +1774,6 @@ EOF
 #===================================
 #5
 # Reality Reverse Tunnel
-reality_reverse() {
 
 reality_reverse() {
     create_reverse_reality_failover() {
@@ -3633,9 +3632,9 @@ check_install_service() {
 check_tunnel_status() {
 	# Check the status of the tunnel service
 	if sudo systemctl is-active --quiet Waterwall.service; then
-		echo -e "${yellow}     Waterwall :${green} [running ✔] ${rest}"
+		echo -e "${yellow}     Waterwall :${green} [running âœ”] ${rest}"
 	else
-		echo -e "${yellow}     Waterwall: ${red} [Not running ✗ ] ${rest}"
+		echo -e "${yellow}     Waterwall: ${red} [Not running âœ— ] ${rest}"
 	fi
 }
 #===================================
@@ -3644,10 +3643,10 @@ check_waterwall_status() {
 	sleep 1
 	# Check the status of the tunnel service
 	if sudo systemctl is-active --quiet Waterwall.service; then
-		echo -e "${cyan}Waterwall Installed successfully :${green} [running ✔] ${rest}"
+		echo -e "${cyan}Waterwall Installed successfully :${green} [running âœ”] ${rest}"
 		echo -e "${cyan}============================================${rest}"
 	else
-		echo -e "${yellow}Waterwall is not installed or ${red}[Not running ✗ ] ${rest}"
+		echo -e "${yellow}Waterwall is not installed or ${red}[Not running âœ— ] ${rest}"
 		echo -e "${cyan}==============================================${rest}"
 	fi
 }
@@ -3657,9 +3656,9 @@ check_waterwall_status() {
 check_trojan_status() {
 	# Check the status of the tunnel service
 	if sudo systemctl is-active --quiet trojan.service; then
-		echo -e "${yellow}     Trojan :${green}    [running ✔] ${rest}"
+		echo -e "${yellow}     Trojan :${green}    [running âœ”] ${rest}"
 	else
-		echo -e "${yellow}     Trojan: ${red}    [Not running ✗ ] ${rest}"
+		echo -e "${yellow}     Trojan: ${red}    [Not running âœ— ] ${rest}"
 	fi
 }
 #===================================
@@ -3749,7 +3748,7 @@ main() {
 		uninstall_waterwall
 		;;
 	0)
-		echo -e "${cyan}good bye 🖐${rest}"
+		echo -e "${cyan}good bye ًں–گ${rest}"
 		exit
 		;;
 	*)
